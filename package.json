@@ -1,0 +1,19 @@
+{
+  "name": "mmv_clean-app",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "vite",
+    "build": "vite build",
+    "dev": "vite"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.4",
+    "vite": "^4.0.0",
+    "@vitejs/plugin-react": "^3.1.0"
+  }
+}
