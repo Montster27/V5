@@ -1,60 +1,39 @@
+// /Users/montysharma/Documents/V5/mmv_clean/src/application/events/EventManager.ts
+
 import { EventService } from '../../domain/events/EventService';
-import { GameEvent, EventChoice } from '../../domain/events/types';
-import { ResourceManager } from '../resources/ResourceManager';
-import { SkillManager } from '../skills/SkillManager';
-import { GameStateManager } from '../game/GameStateManager';
-import { EventBus } from '../../domain/shared/events';
+import { GameEvent } from '../../domain/events/EventTypes';
 
 export class EventManager {
-  constructor(
-    private eventService: EventService,
-    private resourceManager: ResourceManager,
-    private skillManager: SkillManager,
-    private gameStateManager: GameStateManager,
-    private eventBus: EventBus
-  ) {}
+  private eventService: EventService;
 
-  checkForEvents(): void {
-    const events = this.eventService.checkForEvents(
-      this.resourceManager.getState(),
-      this.skillManager.getState(),
-      this.gameStateManager.getState()
-    );
+  constructor() {
+    this.eventService = new EventService();
+  }
 
-    if (events.length > 0) {
-      this.eventBus.emit('events:available', events);
+  public checkForEvents(): void {
+    // Check for any pending events
+    this.processScheduledEvents();
+    this.processTimedEvents();
+  }
+
+  public processEventChoice(eventId: string, choiceId: string): void {
+    // Process the player's choice for an event
+    const event = this.eventService.getRecentEvents().find(e => e.id === eventId);
+    if (event) {
+      // Handle the choice consequences
+      this.processEventConsequences(event, choiceId);
     }
   }
 
-  handleEventChoice(event: GameEvent, choice: EventChoice): void {
-    try {
-      const state = this.gameStateManager.getState();
-      this.eventService.processEventChoice(
-        event,
-        choice,
-        this.resourceManager.getState(),
-        this.skillManager.getState(),
-        this.gameStateManager.getState()
-      );
-      
-      this.eventBus.emit('events:choice:processed', {
-        eventId: event.id,
-        choiceId: choice.id
-      });
-    } catch (err) {
-      if (err instanceof Error) {
-        this.eventBus.emit('events:choice:failed', {
-          eventId: event.id,
-          choiceId: choice.id,
-          error: err.message
-        });
-      } else {
-        this.eventBus.emit('events:choice:failed', {
-          eventId: event.id,
-          choiceId: choice.id,
-          error: 'Unknown error occurred'
-        });
-      }
-    }
+  private processScheduledEvents(): void {
+    // Process events that are scheduled for the current time
+  }
+
+  private processTimedEvents(): void {
+    // Process events that are triggered by time passing
+  }
+
+  private processEventConsequences(event: GameEvent, choiceId: string): void {
+    // Process the consequences of an event choice
   }
 }

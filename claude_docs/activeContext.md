@@ -1,21 +1,22 @@
 # Active Context
 
-## Current Status
-- Basic game engine running with time management
-- Resource system implemented 
-- UI showing time and resource bars
-- EventManager and EventService set up with empty pool
+## What We're Working On
+- Implementing UI components for the game interface
+- Created initial time management and resource tracking systems
+- Developing event and news/gossip display systems
+- Refining color schemes and visual design
 
 ## Recent Changes
-1. Added resource generation/consumption in TimeManager
-2. Implemented resource display in GameRoot
-3. Set up hourly/daily resource updates
-
-## Current Error
-Error: this.skillManager.getState is not a function
-- Event system trying to access skillManager but not properly initialized
+- Redesigned UI layout with central event focus
+- Created Resource, Event, and News/Gossip displays
+- Implemented time allocation system with sliders
+- Updated color scheme for better readability
+- Added status and effects tracking
 
 ## Next Steps
-1. Fix SkillManager constructor in EventManager
-2. Update EventService to handle missing skills
-3. Implement proper skill state management
+- Implement state management for game state
+- Add event generation system
+- Create game loop and time progression
+- Add persistence and save/load functionality
+- Implement social interaction system
+- Add tutorial system

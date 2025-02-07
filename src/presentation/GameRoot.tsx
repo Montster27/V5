@@ -1,76 +1,93 @@
-import React, { useEffect, useState } from 'react';
+// /Users/montysharma/Documents/V5/mmv_clean/src/presentation/GameRoot.tsx
+
+import React, { useEffect, useRef, useState } from 'react';
 import { GameEngine } from '../application/GameEngine';
-import { GameTime } from '../domain/time/types';
-import { Resource } from '../domain/resources/types';
+import { useTime } from '../hooks/useTime';
+import GameInterface from '../components/GameInterface';
+import { GameError } from '../domain/shared/GameError';
+import { ErrorDialog } from '../components/ErrorDialog';
+
+interface GameErrorDisplay {
+  error: GameError;
+  timestamp: number;
+}
 
 export const GameRoot: React.FC = () => {
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [gameTime, setGameTime] = useState<GameTime>({ day: 1, hour: 8, minute: 0 });
-  const [resources, setResources] = useState<Resource[]>([]);
-  const [engine, setEngine] = useState<GameEngine | null>(null);
+  const gameEngineRef = useRef<GameEngine>(new GameEngine());
+  const timeState = useTime();
+  const [errors, setErrors] = useState<GameErrorDisplay[]>([]);
+  const [fatalError, setFatalError] = useState<GameError | null>(null);
 
   useEffect(() => {
-    try {
-      const gameEngine = GameEngine.create();
-      gameEngine.onTimeUpdate = (time: GameTime) => {
-        setGameTime(time);
-      };
-      gameEngine.onResourceUpdate = (resources: Resource[]) => {
-        setResources(resources);
-      };
-      setEngine(gameEngine);
-      setLoading(false);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to initialize game engine');
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!engine) return;
+    const gameEngine = gameEngineRef.current;
     
+    // Register error handler
+    gameEngine.registerErrorHandler((error: GameError) => {
+      if (error.severity === 'fatal') {
+        setFatalError(error);
+        gameEngine.stop();
+      } else {
+        setErrors(prev => [...prev, { error, timestamp: Date.now() }]);
+        // Auto-remove non-fatal errors after 5 seconds
+        setTimeout(() => {
+          setErrors(prev => prev.filter(e => e.timestamp !== Date.now()));
+        }, 5000);
+      }
+    });
+
+    // Initialize the game engine
     try {
-      engine.start();
-      return () => engine.stop();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to start game engine');
+      gameEngine.initialize(timeState);
+      gameEngine.create();
+    } catch (error) {
+      console.error('Failed to initialize game:', error);
     }
-  }, [engine]);
+    
+    return () => {
+      gameEngine.stop();
+    };
+  }, [timeState]);
 
-  if (loading) {
-    return <div className="min-h-screen bg-gray-900 text-white p-4">Loading...</div>;
-  }
+  useEffect(() => {
+    const gameEngine = gameEngineRef.current;
+    
+    if (!timeState.isPaused) {
+      gameEngine.start();
+    } else {
+      gameEngine.stop();
+    }
+  }, [timeState.isPaused]);
 
-  if (error) {
-    return <div className="min-h-screen bg-gray-900 text-white p-4">Error: {error}</div>;
-  }
+  const handleRestartGame = () => {
+    window.location.reload();
+  };
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-4">
-      <h1 className="text-2xl mb-4">MMV Game</h1>
-      
-      <div className="bg-gray-800 p-2 rounded mb-4">
-        Day {gameTime.day}, {gameTime.hour}:{gameTime.minute.toString().padStart(2, '0')}
-      </div>
+    <div className="h-screen w-screen relative">
+      <GameInterface />
 
-      <div className="grid grid-cols-2 gap-4">
-        {resources.map(resource => (
-          <div key={resource.type} className="bg-gray-800 p-2 rounded">
-            <div className="font-bold">{resource.type}</div>
-            <div className="flex justify-between">
-              <span>{resource.value.toFixed(0)}</span>
-              <span className="text-gray-400">/ {resource.maxValue}</span>
-            </div>
-            <div className="w-full bg-gray-700 h-2 rounded">
-              <div 
-                className="bg-blue-500 h-2 rounded"
-                style={{ width: `${(resource.value / resource.maxValue) * 100}%` }}
-              />
-            </div>
+      {/* Non-fatal error notifications */}
+      <div className="fixed top-4 right-4 z-50 space-y-2">
+        {errors.map(({ error, timestamp }) => (
+          <div
+            key={timestamp}
+            className={`p-4 rounded-lg shadow-lg animate-fade-in ${
+              error.severity === 'warning' ? 'bg-yellow-800' : 'bg-red-800'
+            } text-white`}
+          >
+            <div className="font-medium">{error.code}</div>
+            <div className="text-sm">{error.message}</div>
           </div>
         ))}
       </div>
+
+      {/* Fatal error dialog */}
+      {fatalError && (
+        <ErrorDialog 
+          error={fatalError}
+          onRestart={handleRestartGame}
+        />
+      )}
     </div>
   );
 };

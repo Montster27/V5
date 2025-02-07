@@ -1,175 +1,124 @@
-import React, { useState, useCallback } from 'react';
-import { Play, Pause, Save, RotateCcw, FastForward } from 'lucide-react';
+import React, { useState } from 'react';
+import { Card } from '@/components/ui/card';
+import { Clock } from 'lucide-react';
+import { StressEnergyDisplay } from './StressEnergyDisplay';
+import { TimeAllocation } from './TimeAllocation';
+import { ResourceDisplay } from './ResourceDisplay';
+import { EventDisplay } from './EventDisplay';
+import { NewsGossip } from './NewsGossip';
+import { ErrorDialog } from './ErrorDialog';
 
-// Mock data for development
-const mockGameState = {
-  time: {
-    currentDate: {
-      timestamp: Date.now(),
-      day: 1,
-      month: 0,
-      year: 1983
-    },
-    speed: 1,
-    isPaused: true
-  },
-  resources: {
-    energy: 100,
-    stress: 0,
+const GameInterface = () => {
+  const [showError, setShowError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  
+  // Mock data - would normally come from game state
+  const resources = {
     money: 1000,
-    knowledge: 0,
-    social: 0
-  }
-};
-
-export default function GameInterface() {
-  const [gameState, setGameState] = useState(mockGameState);
-  const [isPaused, setIsPaused] = useState(true);
-  const [speed, setSpeed] = useState(1);
-  const [isSaving, setIsSaving] = useState(false);
-
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString('en-US', { 
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
+    knowledge: 500,
+    social: 300
   };
 
-  const togglePause = useCallback(() => {
-    setIsPaused(!isPaused);
-  }, [isPaused]);
+  const currentEvent = {
+    title: "Study Group Invitation",
+    description: "Sarah from your Economics class is forming a study group for the upcoming midterm. She's invited you to join. How do you respond?",
+    options: [
+      {
+        id: "1",
+        text: "Join the study group - it could help improve your grades and make new friends",
+        impact: { knowledge: 20, social: 10, money: -5 }
+      },
+      {
+        id: "2",
+        text: "Decline politely - you prefer to study alone",
+        impact: { knowledge: 5, social: -5 }
+      },
+      {
+        id: "3",
+        text: "Suggest an alternative time that works better for you",
+        impact: { knowledge: 15, social: 5 }
+      }
+    ]
+  };
 
-  const toggleSpeed = useCallback(() => {
-    setSpeed(speed === 1 ? 2 : 1);
-  }, [speed]);
+  const newsItems = [
+    {
+      id: "1",
+      type: "news" as const,
+      title: "New Computer Lab Opening",
+      content: "The university is opening a state-of-the-art computer lab next week. Early access available for CS majors.",
+      timestamp: "2 hours ago"
+    },
+    {
+      id: "2",
+      type: "gossip" as const,
+      title: "Drama in the Dorms",
+      content: "Rumor has it that the RA on the third floor is dating a professor...",
+      timestamp: "4 hours ago"
+    }
+  ];
 
-  const handleSave = useCallback(() => {
-    setIsSaving(true);
-    // Save implementation will go here
-    setTimeout(() => setIsSaving(false), 1000);
-  }, []);
+  const handleError = (message: string) => {
+    setErrorMessage(message);
+    setShowError(true);
+  };
 
-  const handleNewGame = useCallback(() => {
-    setGameState(mockGameState);
-    setIsPaused(true);
-    setSpeed(1);
-  }, []);
+  const handleTimeChange = (allocations: any) => {
+    console.log('Time allocations changed:', allocations);
+  };
+
+  const handleEventChoice = (optionId: string) => {
+    console.log('Event choice made:', optionId);
+  };
 
   return (
-    <div className="flex flex-col h-screen bg-gray-100">
+    <div className="flex flex-col h-screen bg-slate-100">
       {/* Header */}
-      <div className="flex justify-between items-center p-4 bg-white shadow">
-        <div className="text-xl font-bold">
-          {formatDate(new Date(gameState.time.currentDate.timestamp))}
-        </div>
-        <div className="flex gap-2">
-          <button 
-            className="p-2 rounded hover:bg-gray-100"
-            onClick={togglePause}
-          >
-            {isPaused ? <Play size={24} /> : <Pause size={24} />}
-          </button>
-          <button 
-            className="p-2 rounded hover:bg-gray-100"
-            onClick={toggleSpeed}
-          >
-            <FastForward size={24} className={speed > 1 ? "text-blue-500" : ""} />
-          </button>
-          <button 
-            className="p-2 rounded hover:bg-gray-100"
-            onClick={handleSave}
-            disabled={isSaving}
-          >
-            <Save size={24} />
-          </button>
-          <button 
-            className="p-2 rounded hover:bg-gray-100"
-            onClick={handleNewGame}
-          >
-            <RotateCcw size={24} />
-          </button>
-        </div>
-      </div>
-
-      {/* Resource Display */}
-      <div className="grid grid-cols-5 gap-4 p-4">
-        {Object.entries(gameState.resources).map(([resource, value]) => (
-          <div 
-            key={resource}
-            className="bg-white rounded-lg shadow p-4"
-          >
-            <div className="text-sm text-gray-500 capitalize">{resource}</div>
-            <div className="text-2xl font-bold">{Math.round(value)}</div>
+      <div className="bg-slate-900 text-white p-4 shadow-md">
+        <div className="flex justify-between items-center max-w-7xl mx-auto">
+          <div className="flex items-center space-x-2">
+            <Clock className="w-6 h-6 text-slate-300" />
+            <span className="text-lg font-semibold">September 1, 1983</span>
           </div>
-        ))}
+        </div>
       </div>
 
       {/* Main Game Area */}
-      <div className="flex-1 grid grid-cols-3 gap-4 p-4">
-        <div className="bg-white rounded-lg shadow p-4">
-          {/* Activities Panel */}
-          <h2 className="text-lg font-bold mb-4">Activities</h2>
-          <div className="space-y-2">
-            <button 
-              className="w-full p-2 text-left rounded hover:bg-gray-100"
-              onClick={() => {
-                const newState = { ...gameState };
-                newState.resources.knowledge += 5;
-                newState.resources.energy -= 10;
-                setGameState(newState);
-              }}
-            >
-              Study (+5 Knowledge, -10 Energy)
-            </button>
-            <button 
-              className="w-full p-2 text-left rounded hover:bg-gray-100"
-              onClick={() => {
-                const newState = { ...gameState };
-                newState.resources.money += 10;
-                newState.resources.energy -= 15;
-                setGameState(newState);
-              }}
-            >
-              Work (+10 Money, -15 Energy)
-            </button>
-            <button 
-              className="w-full p-2 text-left rounded hover:bg-gray-100"
-              onClick={() => {
-                const newState = { ...gameState };
-                newState.resources.social += 3;
-                newState.resources.energy -= 5;
-                setGameState(newState);
-              }}
-            >
-              Socialize (+3 Social, -5 Energy)
-            </button>
-            <button 
-              className="w-full p-2 text-left rounded hover:bg-gray-100"
-              onClick={() => {
-                const newState = { ...gameState };
-                newState.resources.energy = Math.min(100, newState.resources.energy + 20);
-                setGameState(newState);
-              }}
-            >
-              Rest (+20 Energy)
-            </button>
+      <div className="flex-1 overflow-hidden">
+        <div className="h-full max-w-7xl mx-auto p-6 grid grid-cols-12 gap-6">
+          {/* Left Column - Stats and Resources */}
+          <div className="col-span-3 space-y-6">
+            <Card className="bg-slate-50 border-slate-200 p-4">
+              <h2 className="text-lg font-semibold text-slate-800 mb-4">Status</h2>
+              <StressEnergyDisplay />
+            </Card>
+            <Card className="bg-slate-50 border-slate-200 p-4">
+              <h2 className="text-lg font-semibold text-slate-800 mb-4">Resources</h2>
+              <ResourceDisplay resources={resources} />
+            </Card>
           </div>
-        </div>
 
-        <div className="bg-white rounded-lg shadow p-4 col-span-2">
-          {/* Events Panel */}
-          <h2 className="text-lg font-bold mb-4">Events</h2>
-          <div className="space-y-4">
-            <div className="p-4 bg-gray-50 rounded">
-              <div className="font-bold">Daily Update</div>
-              <div className="text-sm text-gray-600">
-                Your energy decreased by 5 points due to daily activities.
-              </div>
-            </div>
+          {/* Center Column - Current Event */}
+          <div className="col-span-6">
+            <EventDisplay event={currentEvent} onChooseOption={handleEventChoice} />
+          </div>
+
+          {/* Right Column - Time Allocation and News */}
+          <div className="col-span-3 space-y-6">
+            <TimeAllocation onTimeChange={handleTimeChange} />
+            <NewsGossip items={newsItems} />
           </div>
         </div>
       </div>
+
+      {/* Error Dialog */}
+      <ErrorDialog
+        isOpen={showError}
+        onClose={() => setShowError(false)}
+        message={errorMessage}
+      />
     </div>
   );
-}
+};
+
+export default GameInterface;
