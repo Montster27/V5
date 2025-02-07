@@ -1,41 +1,41 @@
-import { useState, useCallback, useEffect } from 'react';
-import { TimeService } from '../application/services/TimeService';
-import { TimeState } from '../domain/time/types';
-import { useEventBus } from './useEventBus';
+// /Users/montysharma/Documents/V5/mmv_clean/src/hooks/useTime.ts
 
-const timeService = new TimeService();
+import { useState, useCallback } from 'react';
+import { TimeState } from '../domain/time/TimeState';
 
-export function useTime() {
-  const [timeState, setTimeState] = useState<TimeState>(timeService.getState());
-
-  useEventBus('DAY_PASSED', useCallback(() => {
-    setTimeState(timeService.getState());
-  }, []));
+export function useTime(): TimeState {
+  const [currentDate, setCurrentDate] = useState<Date>(new Date());
+  const [isPaused, setIsPaused] = useState<boolean>(true);
+  const [speed, setSpeed] = useState<number>(1);
 
   const start = useCallback(() => {
-    timeService.start();
-    setTimeState(timeService.getState());
+    setIsPaused(false);
   }, []);
 
   const pause = useCallback(() => {
-    timeService.pause();
-    setTimeState(timeService.getState());
+    setIsPaused(true);
   }, []);
 
-  const setSpeed = useCallback((speed: number) => {
-    timeService.setSpeed(speed);
-    setTimeState(timeService.getState());
+  const togglePause = useCallback(() => {
+    setIsPaused(prev => !prev);
   }, []);
 
   const getCurrentDate = useCallback(() => {
-    return timeService.getCurrentDate();
+    return currentDate;
+  }, [currentDate]);
+
+  const updateSpeed = useCallback((newSpeed: number) => {
+    setSpeed(newSpeed);
   }, []);
 
   return {
-    timeState,
+    currentDate,
+    isPaused,
+    speed,
     start,
     pause,
-    setSpeed,
-    getCurrentDate
+    setSpeed: updateSpeed,
+    getCurrentDate,
+    togglePause
   };
 }

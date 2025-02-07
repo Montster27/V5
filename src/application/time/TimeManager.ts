@@ -1,60 +1,54 @@
-import { GameTime, TimeService, TimeState } from '../../domain/time/types';
-import { EventBus } from '../../domain/shared/events';
+import { EventBus } from "../../domain/shared/events";
+import { GameTime } from "../../domain/time/types";
 
-export class TimeManager implements TimeService {
-  private state: TimeState;
-  private eventBus: EventBus;
-  
-  constructor(eventBus: EventBus) {
-    this.eventBus = eventBus;
-    this.state = {
-      gameTime: { day: 1, hour: 8, minute: 0 },
-      realMsPerGameMinute: 50,
-      isPaused: true
-    };
-  }
+export class TimeManager {
+  private currentTime: GameTime = { day: 1, hour: 8, minute: 0 };
+  private isPaused: boolean = true;
+  private accumulatedMs: number = 0;
+  private readonly MS_PER_MINUTE = 50; // 1 game day = 3 real seconds
+
+  constructor(private eventBus: EventBus) {}
 
   getCurrentTime(): GameTime {
-    return { ...this.state.gameTime };
-  }
-
-  setTimeScale(msPerGameMinute: number): void {
-    this.state.realMsPerGameMinute = Math.max(1, Math.min(1000, msPerGameMinute));
-    this.eventBus.emit('TIME_SCALE_CHANGED', this.state.realMsPerGameMinute);
-  }
-
-  pause(): void {
-    this.state.isPaused = true;
-    this.eventBus.emit('TIME_PAUSED', null);
-  }
-
-  resume(): void {
-    this.state.isPaused = false;
-    this.eventBus.emit('TIME_RESUMED', null);
+    return { ...this.currentTime };
   }
 
   advance(deltaMs: number): void {
-    if (this.state.isPaused) return;
-    
-    const gameMinutes = Math.floor(deltaMs / this.state.realMsPerGameMinute);
-    if (gameMinutes === 0) return;
+    if (this.isPaused) return;
 
-    const { day, hour, minute } = this.state.gameTime;
-    let newMinute = minute + gameMinutes;
-    let newHour = hour;
-    let newDay = day;
+    this.accumulatedMs += deltaMs;
+    while (this.accumulatedMs >= this.MS_PER_MINUTE) {
+      this.accumulatedMs -= this.MS_PER_MINUTE;
+      this.incrementTime();
+    }
+  }
 
-    if (newMinute >= 60) {
-      newHour += Math.floor(newMinute / 60);
-      newMinute %= 60;
+  private incrementTime(): void {
+    this.currentTime.minute++;
+    if (this.currentTime.minute >= 60) {
+      this.currentTime.minute = 0;
+      this.currentTime.hour++;
+      
+      // Emit resource updates every hour
+      this.eventBus.emit('HOURLY_UPDATE', this.currentTime);
     }
 
-    if (newHour >= 24) {
-      newDay += Math.floor(newHour / 24);
-      newHour %= 24;
+    if (this.currentTime.hour >= 24) {
+      this.currentTime.hour = 0;
+      this.currentTime.day++;
+      
+      // Emit daily updates
+      this.eventBus.emit('DAILY_UPDATE', this.currentTime);
     }
 
-    this.state.gameTime = { day: newDay, hour: newHour, minute: newMinute };
-    this.eventBus.emit('TIME_UPDATED', this.state.gameTime);
+    this.eventBus.emit('TIME_UPDATED', this.currentTime);
+  }
+
+  pause(): void {
+    this.isPaused = true;
+  }
+
+  resume(): void {
+    this.isPaused = false;
   }
 }

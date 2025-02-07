@@ -1,58 +1,92 @@
-import React, { useEffect, useState } from 'react';
+// /Users/montysharma/Documents/V5/mmv_clean/src/presentation/GameRoot.tsx
+
+import React, { useEffect, useRef, useState } from 'react';
 import { GameEngine } from '../application/GameEngine';
-import { GameTime } from '../domain/time/types';
-import { Resources } from '../domain/resources/types';
-import { GameEvent } from '../domain/events/types';
+import { useTime } from '../hooks/useTime';
+import GameInterface from '../components/GameInterface';
+import { GameError } from '../domain/shared/GameError';
+import { ErrorDialog } from '../components/ErrorDialog';
+
+interface GameErrorDisplay {
+  error: GameError;
+  timestamp: number;
+}
 
 export const GameRoot: React.FC = () => {
-  const [engine] = useState(() => GameEngine.create());
-  const [time, setTime] = useState<GameTime>();
-  const [resources, setResources] = useState<Resources>();
-  const [events, setEvents] = useState<GameEvent[]>();
+  const gameEngineRef = useRef<GameEngine>(new GameEngine());
+  const timeState = useTime();
+  const [errors, setErrors] = useState<GameErrorDisplay[]>([]);
+  const [fatalError, setFatalError] = useState<GameError | null>(null);
 
   useEffect(() => {
-    const eventBus = (engine as any).eventBus;
+    const gameEngine = gameEngineRef.current;
     
-    eventBus.subscribe('TIME_UPDATED', setTime);
-    eventBus.subscribe('RESOURCE_CHANGED', setResources);
-    eventBus.subscribe('EVENT_ACTIVATED', (event: GameEvent) => {
-      setEvents(prev => [...(prev || []), event]);
+    // Register error handler
+    gameEngine.registerErrorHandler((error: GameError) => {
+      if (error.severity === 'fatal') {
+        setFatalError(error);
+        gameEngine.stop();
+      } else {
+        setErrors(prev => [...prev, { error, timestamp: Date.now() }]);
+        // Auto-remove non-fatal errors after 5 seconds
+        setTimeout(() => {
+          setErrors(prev => prev.filter(e => e.timestamp !== Date.now()));
+        }, 5000);
+      }
     });
 
-    engine.start();
-    return () => engine.stop();
-  }, [engine]);
+    // Initialize the game engine
+    try {
+      gameEngine.initialize(timeState);
+      gameEngine.create();
+    } catch (error) {
+      console.error('Failed to initialize game:', error);
+    }
+    
+    return () => {
+      gameEngine.stop();
+    };
+  }, [timeState]);
+
+  useEffect(() => {
+    const gameEngine = gameEngineRef.current;
+    
+    if (!timeState.isPaused) {
+      gameEngine.start();
+    } else {
+      gameEngine.stop();
+    }
+  }, [timeState.isPaused]);
+
+  const handleRestartGame = () => {
+    window.location.reload();
+  };
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
-      {/* Time Display */}
-      {time && (
-        <div className="absolute top-4 right-4">
-          Day {time.day}, {time.hour}:{time.minute.toString().padStart(2, '0')}
-        </div>
-      )}
+    <div className="h-screen w-screen relative">
+      <GameInterface />
 
-      {/* Resources */}
-      {resources && (
-        <div className="absolute top-4 left-4 space-y-2">
-          <div>Energy: {resources.energy}</div>
-          <div>Stress: {resources.stress}</div>
-          <div>Money: ${resources.money}</div>
-          <div>Knowledge: {resources.knowledge}</div>
-          <div>Social: {resources.social}</div>
-        </div>
-      )}
+      {/* Non-fatal error notifications */}
+      <div className="fixed top-4 right-4 z-50 space-y-2">
+        {errors.map(({ error, timestamp }) => (
+          <div
+            key={timestamp}
+            className={`p-4 rounded-lg shadow-lg animate-fade-in ${
+              error.severity === 'warning' ? 'bg-yellow-800' : 'bg-red-800'
+            } text-white`}
+          >
+            <div className="font-medium">{error.code}</div>
+            <div className="text-sm">{error.message}</div>
+          </div>
+        ))}
+      </div>
 
-      {/* Active Events */}
-      {events && events.length > 0 && (
-        <div className="absolute bottom-4 right-4">
-          {events.map(event => (
-            <div key={event.id} className="bg-gray-800 p-4 rounded-lg mb-2">
-              <h3>{event.title}</h3>
-              <p>{event.description}</p>
-            </div>
-          ))}
-        </div>
+      {/* Fatal error dialog */}
+      {fatalError && (
+        <ErrorDialog 
+          error={fatalError}
+          onRestart={handleRestartGame}
+        />
       )}
     </div>
   );

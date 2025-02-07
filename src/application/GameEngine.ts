@@ -1,59 +1,165 @@
-import { EventBusImpl } from '../infrastructure/events/EventBusImpl';
-import { TimeManager } from './time/TimeManager';
-import { ResourceManager } from './resources/ResourceManager';
-import { EventManager } from './events/EventManager';
-import { LocalStorageSaveService } from '../infrastructure/persistence/LocalStorageSaveService';
+// /Users/montysharma/Documents/V5/mmv_clean/src/application/GameEngine.ts
+
 import { GameStateManager } from './GameStateManager';
+import { EventManager } from './events/EventManager';
+import { TimeState } from '../domain/time/TimeState';
+import { GameError } from '../domain/shared/GameError';
 
 export class GameEngine {
-  private lastUpdate: number = 0;
-  private running: boolean = false;
+  private gameStateManager!: GameStateManager;
+  private eventManager!: EventManager;
+  private timeState!: TimeState;
+  private isInitialized: boolean = false;
+  private errorHandlers: ((error: GameError) => void)[] = [];
 
-  constructor(
-    private timeManager: TimeManager,
-    private resourceManager: ResourceManager,
-    private eventManager: EventManager,
-    private stateManager: GameStateManager
-  ) {}
-
-  static create(): GameEngine {
-    const eventBus = new EventBusImpl();
-    const timeManager = new TimeManager(eventBus);
-    const resourceManager = new ResourceManager(eventBus);
-    const eventManager = new EventManager(eventBus, resourceManager);
-    const saveService = new LocalStorageSaveService();
-    const stateManager = new GameStateManager(
-      timeManager,
-      resourceManager,
-      eventManager,
-      saveService,
-      eventBus
-    );
-
-    return new GameEngine(timeManager, resourceManager, eventManager, stateManager);
+  constructor() {
+    this.initializeManagers();
   }
 
-  start(): void {
-    this.running = true;
-    this.lastUpdate = performance.now();
-    this.gameLoop();
+  private initializeManagers(): void {
+    try {
+      this.gameStateManager = new GameStateManager();
+      this.eventManager = new EventManager();
+    } catch (error) {
+      this.handleError(new GameError(
+        'Failed to initialize game engine',
+        'ENGINE_INIT_ERROR',
+        'fatal',
+        { originalError: error }
+      ));
+    }
   }
 
-  stop(): void {
-    this.running = false;
+  public registerErrorHandler(handler: (error: GameError) => void): void {
+    this.errorHandlers.push(handler);
   }
 
-  private gameLoop = (): void => {
-    if (!this.running) return;
+  private handleError(error: GameError): void {
+    console.error(`[GameEngine] ${error.code}:`, error.message, error.context);
+    this.errorHandlers.forEach(handler => handler(error));
+    
+    if (error.severity === 'fatal') {
+      this.stop();
+    }
+  }
 
-    const now = performance.now();
-    const deltaMs = now - this.lastUpdate;
-    this.lastUpdate = now;
+  public create(): void {
+    try {
+      if (!this.gameStateManager) {
+        throw new GameError(
+          'Game state manager not initialized',
+          'STATE_MANAGER_ERROR',
+          'fatal'
+        );
+      }
+      this.gameStateManager.initialize();
+    } catch (error) {
+      this.handleError(new GameError(
+        'Failed to create game systems',
+        'CREATE_ERROR',
+        'fatal',
+        { originalError: error }
+      ));
+    }
+  }
 
-    // Update game state
-    this.timeManager.advance(deltaMs);
-    this.eventManager.checkScheduledEvents(this.timeManager.getCurrentTime());
+  public start(): void {
+    try {
+      if (!this.isInitialized) {
+        throw new GameError(
+          'Game engine not initialized',
+          'NOT_INITIALIZED',
+          'error'
+        );
+      }
+      this.timeState.start();
+    } catch (error) {
+      this.handleError(new GameError(
+        'Failed to start game',
+        'START_ERROR',
+        'error',
+        { originalError: error }
+      ));
+    }
+  }
 
-    requestAnimationFrame(this.gameLoop);
+  public stop(): void {
+    try {
+      this.timeState?.pause();
+    } catch (error) {
+      this.handleError(new GameError(
+        'Failed to stop game',
+        'STOP_ERROR',
+        'error',
+        { originalError: error }
+      ));
+    }
+  }
+
+  public initialize(timeState: TimeState): void {
+    try {
+      if (!timeState) {
+        throw new GameError(
+          'Invalid time state provided',
+          'INVALID_TIME_STATE',
+          'fatal'
+        );
+      }
+      this.timeState = timeState;
+      this.gameStateManager.initialize();
+      this.isInitialized = true;
+    } catch (error) {
+      this.handleError(new GameError(
+        'Failed to initialize game engine',
+        'INIT_ERROR',
+        'fatal',
+        { originalError: error }
+      ));
+    }
+  }
+
+  public update(delta: number): void {
+    try {
+      if (!this.isInitialized) {
+        throw new GameError(
+          'Game engine not initialized',
+          'UPDATE_ERROR',
+          'error'
+        );
+      }
+
+      if (!this.timeState.isPaused) {
+        this.gameStateManager.update(delta);
+        this.eventManager.checkForEvents();
+      }
+    } catch (error) {
+      this.handleError(new GameError(
+        'Error during game update',
+        'UPDATE_ERROR',
+        'error',
+        { originalError: error, delta }
+      ));
+    }
+  }
+
+  public setSpeed(speed: number): void {
+    try {
+      if (speed < 0 || speed > 3) {
+        throw new GameError(
+          'Invalid game speed',
+          'INVALID_SPEED',
+          'warning',
+          { speed }
+        );
+      }
+      this.timeState.setSpeed(speed);
+    } catch (error) {
+      this.handleError(new GameError(
+        'Failed to set game speed',
+        'SPEED_ERROR',
+        'warning',
+        { originalError: error, speed }
+      ));
+    }
   }
 }

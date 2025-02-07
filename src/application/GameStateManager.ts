@@ -1,34 +1,35 @@
-import { SaveService, GameState } from '../domain/persistence/types';
-import { TimeService } from '../domain/time/types';
-import { ResourceService } from '../domain/resources/types';
-import { EventService } from '../domain/events/types';
-import { EventBus } from '../domain/shared/events';
+// /Users/montysharma/Documents/V5/mmv_clean/src/application/GameStateManager.ts
 
 export class GameStateManager {
-  constructor(
-    private timeService: TimeService,
-    private resourceService: ResourceService,
-    private eventService: EventService,
-    private saveService: SaveService,
-    private eventBus: EventBus
-  ) {}
+  private isInitialized: boolean = false;
 
-  async saveGame(slotId: string): Promise<void> {
-    const state: GameState = {
-      time: this.timeService.getCurrentTime(),
-      resources: this.resourceService.getResources(),
-      activeEvents: this.eventService.getCurrentEvents(),
-      scheduledEvents: [], // TODO: Add method to get scheduled events
-      version: '1.0.0'
-    };
-
-    await this.saveService.saveGame(state, slotId);
-    this.eventBus.emit('GAME_SAVED', slotId);
+  public initialize(): void {
+    if (!this.isInitialized) {
+      // Initialize game state
+      this.isInitialized = true;
+    }
   }
 
-  async loadGame(slotId: string): Promise<void> {
-    const state = await this.saveService.loadGame(slotId);
-    // TODO: Implement state restoration logic for each service
-    this.eventBus.emit('GAME_LOADED', slotId);
+  public update(delta: number): void {
+    if (!this.isInitialized) {
+      throw new Error('GameStateManager must be initialized before updating');
+    }
+    // Update game state based on delta time
+  }
+
+  public getGameState(): Record<string, any> {
+    return {
+      // Return current game state
+    };
+  }
+
+  public loadGameState(state: Record<string, any>): void {
+    // Load a saved game state
+  }
+
+  public resetGameState(): void {
+    // Reset to initial game state
+    this.isInitialized = false;
+    this.initialize();
   }
 }

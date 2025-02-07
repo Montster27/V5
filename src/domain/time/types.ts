@@ -1,3 +1,9 @@
+export interface GameTime {
+  day: number;
+  hour: number;
+  minute: number;
+}
+
 export interface GameDate {
   timestamp: number;
   day: number;

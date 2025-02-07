@@ -11,6 +11,14 @@ export interface ActivityReward {
   energy?: number;
 }
 
+export interface ActivityEffect {
+  id: string;
+  type: string;
+  value: number;
+  duration?: number;
+  target?: string;
+}
+
 export interface Activity {
   id: string;
   name: string;

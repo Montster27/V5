@@ -1,32 +1,28 @@
-export type EventCategory = 'daily' | 'pivotal' | 'mystery';
-
-export interface GameEvent {
-  id: string;
-  category: EventCategory;
-  title: string;
-  description: string;
-  triggerConditions: TriggerCondition[];
-  choices: EventChoice[];
-  effects: EventEffect[];
+export interface EventTrigger {
+  type: string;
+  target: string;
+  operator: 'equals' | 'greater' | 'less';
+  value: number;
 }
 
-export interface TriggerCondition {
-  type: 'resource' | 'skill' | 'time' | 'state';
+export interface EventEffect {
+  type: string;
   target: string;
-  operator: 'gt' | 'lt' | 'eq' | 'gte' | 'lte';
+  operator: 'add' | 'subtract' | 'multiply' | 'set';
   value: number;
 }
 
 export interface EventChoice {
   id: string;
   text: string;
-  requirements?: TriggerCondition[];
+  requirements?: EventTrigger[];
   effects: EventEffect[];
 }
 
-export interface EventEffect {
-  type: 'resource' | 'skill' | 'state';
-  target: string;
-  value: number;
-  operator: 'add' | 'subtract' | 'set' | 'multiply';
+export interface GameEvent {
+  id: string;
+  title: string;
+  description: string;
+  trigger: EventTrigger;
+  choices: EventChoice[];
 }
