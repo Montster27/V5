@@ -1,137 +1,75 @@
-import React, { useState } from 'react';
-import { Card } from '@/components/ui/card';
+import React from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
-import { BookOpen, Briefcase, Users, Moon } from 'lucide-react';
+import { Clock } from 'lucide-react';
+import { useGame } from '../application/contexts/GameContext';
 
-interface TimeAllocationProps {
-  onTimeChange: (allocations: TimeAllocations) => void;
-}
+const ACTIVITY_LABELS = {
+  study: 'Study Time',
+  sleep: 'Sleep',
+  social: 'Social Activities',
+  work: 'Work',
+  leisure: 'Leisure'
+};
 
-interface TimeAllocations {
-  study: number;
-  work: number;
-  social: number;
-  sleep: number;
-}
-
-export const TimeAllocation: React.FC<TimeAllocationProps> = ({ onTimeChange }) => {
-  const [allocations, setAllocations] = useState<TimeAllocations>({
-    study: 8,
-    work: 4,
-    social: 4,
-    sleep: 8
-  });
-
-  const MAX_HOURS = 20;
-  const MIN_SLEEP = 1;
-
-  const handleTimeChange = (activity: keyof TimeAllocations, value: number[]) => {
-    const newValue = value[0];
-    const totalOtherTime = Object.entries(allocations)
-      .filter(([key]) => key !== activity)
-      .reduce((sum, [_, val]) => sum + val, 0);
-
-    // Ensure we don't exceed 24 hours total
-    if (totalOtherTime + newValue > 24) {
-      return;
-    }
-
-    // Ensure minimum sleep requirement
-    if (activity === 'sleep' && newValue < MIN_SLEEP) {
-      return;
-    }
-
-    // Ensure maximum study time
-    if (activity === 'study' && newValue > MAX_HOURS) {
-      return;
-    }
-
-    setAllocations(prev => {
-      const updated = { ...prev, [activity]: newValue };
-      onTimeChange(updated);
-      return updated;
-    });
+export const TimeAllocation: React.FC = () => {
+  const { allocatedHours, updateTimeAllocation, calculateEfficiency } = useGame();
+  
+  const handleSliderChange = (activity: string, newValue: number[]) => {
+    const value = newValue[0];
+    updateTimeAllocation({ [activity]: value });
   };
 
-  const activityConfig = {
-    study: {
-      icon: <BookOpen className="w-4 h-4 text-indigo-600" />,
-      label: 'Study',
-      color: 'indigo'
-    },
-    work: {
-      icon: <Briefcase className="w-4 h-4 text-amber-600" />,
-      label: 'Work',
-      color: 'amber'
-    },
-    social: {
-      icon: <Users className="w-4 h-4 text-rose-600" />,
-      label: 'Social',
-      color: 'rose'
-    },
-    sleep: {
-      icon: <Moon className="w-4 h-4 text-sky-600" />,
-      label: 'Sleep',
-      color: 'sky'
-    }
-  };
+  const renderActivitySlider = (activity: string, label: string) => {
+    const efficiency = calculateEfficiency(activity as keyof typeof allocatedHours);
+    const efficiencyColor = efficiency > 0.8 ? 'text-green-500' : 
+                           efficiency > 0.5 ? 'text-yellow-500' : 
+                           'text-red-500';
 
-  const getLabel = (activity: keyof TimeAllocations) => {
-    const config = activityConfig[activity];
-    const hours = allocations[activity];
-    
     return (
-      <div className="flex items-center justify-between w-full mb-2">
-        <div className="flex items-center space-x-2">
-          {config.icon}
-          <span className="text-slate-700 font-medium">{config.label}</span>
+      <div className="mb-4" key={activity}>
+        <div className="flex justify-between items-center mb-2">
+          <span className="text-sm font-medium">{label}</span>
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium">
+              {allocatedHours[activity as keyof typeof allocatedHours]}h
+            </span>
+            <span className={`text-xs ${efficiencyColor}`}>
+              ({Math.round(efficiency * 100)}% efficiency)
+            </span>
+          </div>
         </div>
-        <span className={`text-sm font-medium text-${config.color}-600`}>
-          {hours}h
-        </span>
+        <Slider
+          value={[allocatedHours[activity as keyof typeof allocatedHours]]}
+          max={24}
+          step={1}
+          className="w-full"
+          onValueChange={(value) => handleSliderChange(activity, value)}
+        />
       </div>
     );
   };
 
-  // Calculate remaining hours
-  const totalHours = Object.values(allocations).reduce((sum, val) => sum + val, 0);
-  const remainingHours = 24 - totalHours;
+  const totalHours = Object.values(allocatedHours).reduce((sum, hours) => sum + hours, 0);
 
   return (
     <Card className="bg-slate-50 border-slate-200">
-      <div className="p-4">
-        <h2 className="text-lg font-semibold text-slate-800 mb-4">Daily Time Allocation</h2>
-        <div className="space-y-6">
-          {(Object.keys(allocations) as Array<keyof TimeAllocations>).map((activity) => (
-            <div key={activity} className="space-y-2">
-              {getLabel(activity)}
-              <Slider
-                value={[allocations[activity]]}
-                min={activity === 'sleep' ? MIN_SLEEP : 0}
-                max={activity === 'study' ? MAX_HOURS : 12}
-                step={1}
-                onValueChange={(value) => handleTimeChange(activity, value)}
-                className={`w-full`}
-              />
-            </div>
-          ))}
-          
-          <div className="mt-4 p-3 bg-white rounded-lg border border-slate-200">
-            <div className="flex justify-between text-sm">
-              <span className="text-slate-600">Hours Allocated</span>
-              <span className={totalHours > 24 ? 'text-red-600 font-medium' : 'text-emerald-600 font-medium'}>
-                {totalHours}/24
-              </span>
-            </div>
-            <div className="flex justify-between text-sm mt-1">
-              <span className="text-slate-600">Remaining</span>
-              <span className={`font-medium ${remainingHours < 0 ? 'text-red-600' : 'text-slate-700'}`}>
-                {remainingHours}h
-              </span>
-            </div>
-          </div>
+      <CardHeader>
+        <div className="flex items-center gap-2">
+          <Clock className="h-5 w-5" />
+          <CardTitle className="text-lg font-semibold text-slate-800">Time Allocation</CardTitle>
         </div>
-      </div>
+        <div className="text-sm text-slate-500">
+          Total Hours: {totalHours}/24
+        </div>
+      </CardHeader>
+      <CardContent>
+        {Object.entries(ACTIVITY_LABELS).map(([activity, label]) => 
+          renderActivitySlider(activity, label)
+        )}
+      </CardContent>
     </Card>
   );
 };
+
+export default TimeAllocation;

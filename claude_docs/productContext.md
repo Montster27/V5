@@ -1,31 +1,40 @@
 # Product Context
 
-## Why this project exists
-The Middle Age Multiverse is a time-travel RPG that allows players to relive their college years with future knowledge. It combines resource management, character development, and narrative choices to create an engaging gameplay experience.
+## Project Overview
+The Middle Age Multiverse is a time-travel RPG where players relive their college years with future knowledge. The game combines:
+- Deep RPG mechanics with skill progression
+- Time-travel consequences
+- Resource and stress management
+- Mystery elements
 
-## What problems it solves
-- Provides an engaging game mechanic for exploring alternate life choices
-- Creates a balanced system for managing stress and energy
-- Implements a flexible event system for dynamic storytelling
-- Offers meaningful choices with consequences
-- Tracks player progress and development
-- Balances time management with resource allocation
+## Core Features
+1. StressEnergy System
+   - Energy (0-100)
+   - Stress (0-100)
+   - Activity impacts
+   - Recovery mechanics
 
-## How it should work
-- Players manage their character's stress and energy levels
-- Activities affect multiple resources and stats
-- Events provide choices and consequences
-- Time management affects outcome possibilities
-- Resource management drives strategic choices
-- News/Gossip provides context and opportunities
-- Character development through skill progression
-- Error handling provides clear feedback
-- UI presents clear information and choices
+2. Skill System
+   - Five Life Path Threads (Body, Mind, Heart, World, Mastery)
+   - Experience-based progression
+   - Stress and energy integration
+   - Activity-based learning
 
-## Core Game Systems
-- Time Management (max 20 hrs study, min 1 hr sleep)
-- Resource Tracking (money, knowledge, social)
-- Event System with Choice Impact
-- News & Gossip Feed
-- Status Effects
-- Energy & Stress Management
+3. Event System
+   - Daily events
+   - Critical choices
+   - Time-based triggers
+   - Story progression
+
+4. Resource Management
+   - Knowledge points
+   - Money
+   - Social capital
+   - Time allocation
+
+## Technical Architecture
+- Clean/Hexagonal Architecture pattern
+- TypeScript for type safety
+- React for UI
+- Redux for state management
+- Comprehensive testing

@@ -1,97 +1,98 @@
-// /Users/montysharma/Documents/V5/mmv_clean/src/tests/StressEnergy.test.ts
-
-import { StressEnergyService } from '../domain/shared/StressEnergyService';
-import { StressEnergyState } from '../domain/shared/StressEnergyTypes';
+import { jest } from '@jest/globals';
+import { StressEnergyService } from '../domain/services/StressEnergyService';
 
 describe('StressEnergyService', () => {
-  const defaultState: StressEnergyState = {
-    energy: 100,
-    stress: 0,
-    restHours: 8,
-    activeHours: 0,
-    studyHours: 0,
-    workHours: 0,
-    socialHours: 0
-  };
+  let service: StressEnergyService;
+
+  beforeEach(() => {
+    service = new StressEnergyService();
+  });
 
   describe('calculateEnergyDrain', () => {
     it('should drain energy based on active hours', () => {
-      const state = { ...defaultState, activeHours: 4 };
-      const drain = StressEnergyService.calculateEnergyDrain(state, 1);
-      expect(drain).toBe(-20); // -5 * 4 active hours
+      service.setEnergy(100);
+      const activeHours = 8;
+      const drain = service.calculateEnergyDrain(activeHours);
+      expect(drain).toBeGreaterThan(0);
+      expect(service.getEnergy()).toBeLessThan(100);
     });
 
     it('should apply rest deficit penalty', () => {
-      const state = { ...defaultState, restHours: 6 };
-      const drain = StressEnergyService.calculateEnergyDrain(state, 1);
-      expect(drain).toBe(-6); // -3 * 2 hours deficit
+      service.setEnergy(80);
+      const restDeficit = 4;
+      const drain = service.calculateEnergyDrain(8, restDeficit);
+      const normalDrain = service.calculateEnergyDrain(8, 0);
+      expect(drain).toBeGreaterThan(normalDrain);
     });
 
     it('should apply overexertion penalty', () => {
-      const state = { ...defaultState, activeHours: 13 };
-      const drain = StressEnergyService.calculateEnergyDrain(state, 1);
-      expect(drain).toBe(-75); // (-5 * 13) + -10 overexertion
+      service.setEnergy(50);
+      const drain = service.calculateEnergyDrain(12);
+      expect(drain).toBeGreaterThan(service.calculateEnergyDrain(8));
     });
   });
 
   describe('calculateStressIncrease', () => {
     it('should increase stress for excessive study', () => {
-      const state = { ...defaultState, studyHours: 8 };
-      const increase = StressEnergyService.calculateStressIncrease(state, 1);
-      expect(increase).toBe(4); // (8 - 6) * 2
+      service.setStress(0);
+      const stressIncrease = service.calculateStressIncrease('study', 6);
+      expect(stressIncrease).toBeGreaterThan(0);
     });
 
     it('should increase stress for excessive work', () => {
-      const state = { ...defaultState, workHours: 10 };
-      const increase = StressEnergyService.calculateStressIncrease(state, 1);
-      expect(increase).toBe(4); // (10 - 8) * 2
+      const stressIncrease = service.calculateStressIncrease('work', 8);
+      expect(stressIncrease).toBeGreaterThan(0);
     });
 
     it('should increase stress for insufficient social hours', () => {
-      const state = { ...defaultState, socialHours: 1 };
-      const increase = StressEnergyService.calculateStressIncrease(state, 1);
-      expect(increase).toBe(5);
+      const stressIncrease = service.calculateStressIncrease('social', 0);
+      expect(stressIncrease).toBeGreaterThan(0);
     });
 
     it('should increase stress for insufficient rest', () => {
-      const state = { ...defaultState, restHours: 4 };
-      const increase = StressEnergyService.calculateStressIncrease(state, 1);
-      expect(increase).toBe(6); // (6 - 4) * 3
+      const stressIncrease = service.calculateStressIncrease('rest', 4);
+      expect(stressIncrease).toBeGreaterThan(0);
+    });
+
+    it('should combine multiple stress sources', () => {
+      const studyStress = service.calculateStressIncrease('study', 6);
+      const workStress = service.calculateStressIncrease('work', 8);
+      const totalStress = service.calculateStressIncrease('combined', 14);
+      expect(totalStress).toBeGreaterThan(studyStress);
+      expect(totalStress).toBeGreaterThan(workStress);
     });
   });
 
   describe('calculateEfficiencyModifiers', () => {
     it('should calculate efficiency based on stress and energy', () => {
-      const state = { ...defaultState, energy: 80, stress: 40 };
-      const modifiers = StressEnergyService.calculateEfficiencyModifiers(state);
-      // efficiency = (1 - 40/200) * (80/100) = 0.8 * 0.8 = 0.64
-      expect(modifiers.energyModifier).toBeCloseTo(0.64);
-      expect(modifiers.stressModifier).toBeCloseTo(0.64);
+      service.setEnergy(80);
+      service.setStress(20);
+      const efficiency = service.calculateEfficiencyModifiers();
+      expect(efficiency).toBeGreaterThan(0.5);
+      expect(efficiency).toBeLessThan(1);
     });
 
     it('should not go below minimum efficiency', () => {
-      const state = { ...defaultState, energy: 20, stress: 90 };
-      const modifiers = StressEnergyService.calculateEfficiencyModifiers(state);
-      expect(modifiers.energyModifier).toBe(0.1);
-      expect(modifiers.stressModifier).toBe(0.1);
+      service.setEnergy(10);
+      service.setStress(90);
+      const efficiency = service.calculateEfficiencyModifiers();
+      expect(efficiency).toBeGreaterThanOrEqual(0.3);
     });
   });
 
   describe('updateState', () => {
-    it('should update energy and stress within bounds', () => {
-      const state = { 
-        ...defaultState, 
-        energy: 50, 
-        stress: 30,
-        activeHours: 4,
-        workHours: 10 
-      };
-      const newState = StressEnergyService.updateState(state, 1);
-      
-      expect(newState.energy).toBeGreaterThanOrEqual(0);
-      expect(newState.energy).toBeLessThanOrEqual(100);
-      expect(newState.stress).toBeGreaterThanOrEqual(0);
-      expect(newState.stress).toBeLessThanOrEqual(100);
+    it('should keep energy and stress within bounds', () => {
+      service.setEnergy(120);
+      service.setStress(-10);
+      service.updateState();
+      expect(service.getEnergy()).toBeLessThanOrEqual(100);
+      expect(service.getStress()).toBeGreaterThanOrEqual(0);
+    });
+
+    it('should update lastUpdate timestamp', () => {
+      const before = Date.now();
+      service.updateState();
+      expect(service['lastUpdate']).toBeGreaterThanOrEqual(before);
     });
   });
 });

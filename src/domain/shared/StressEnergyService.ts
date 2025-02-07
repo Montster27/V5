@@ -31,19 +31,19 @@ export class StressEnergyService {
     const socialStress = state.socialHours < 2 ? 5 : 0;
     const restStress = state.restHours < 6 ? (6 - state.restHours) * 3 : 0;
 
-    return (studyStress + workStress + socialStress + restStress) * delta;
+    return (5 + studyStress + workStress + socialStress + restStress) * delta;
   }
 
   /**
    * Calculate efficiency modifiers based on current stress and energy levels
    */
   static calculateEfficiencyModifiers(state: StressEnergyState): StressEnergyModifiers {
-    const baseEfficiency = (1 - state.stress / 200) * (state.energy / 100);
-    const efficiency = Math.max(this.MIN_EFFICIENCY, baseEfficiency);
+    const baseEfficiency = (state.energy / 100) - (state.stress / 200);
+    const efficiency = baseEfficiency < this.MIN_EFFICIENCY ? this.MIN_EFFICIENCY : baseEfficiency;
 
     return {
       energyModifier: efficiency,
-      stressModifier: efficiency
+      stressModifier: efficiency + 0.1
     };
   }
 

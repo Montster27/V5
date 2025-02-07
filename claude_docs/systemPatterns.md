@@ -1,47 +1,68 @@
 # System Patterns
 
-## Architecture Overview
-The system follows a clean architecture pattern with distinct layers:
+## Core Testing Patterns
 
-### Application Layer
-- GameEngine: Core game loop and system orchestration
-- GameStateManager: Manages game state and updates
-- EventManager: Handles game events and activity tracking
+### Component Testing
+- Use React Testing Library
+- Add proper data-testid attributes
+- Test user interactions
+- Test accessibility
+- Add proper cleanup
 
-### Domain Layer
-- StressEnergyService: Manages stress and energy mechanics
-- TimeState: Handles game time progression and allocation
-- EventTypes: Defines event structure and types
-- GameError: Custom error handling system
+### Performance Testing
+- Use reliable measurement methods
+- Average multiple samples
+- Add proper timer mocking
+- Test memory usage
+- Test event processing
 
-### Infrastructure Layer
-- Persistence services for each system
-- Error handling and recovery mechanisms
-- Event bus implementation
+### Integration Testing
+- Test complete workflows
+- Mock only external dependencies
+- Test error conditions
+- Test concurrent operations
+- Test state preservation
 
-### Presentation Layer
-- React components for UI
-  - GameInterface: Main container
-  - ResourceDisplay: Shows player resources
-  - EventDisplay: Central event handling
-  - TimeAllocation: Daily schedule management
-  - NewsGossip: Information feed
-  - StressEnergyDisplay: Status tracking
-- Custom hooks for game state management
-- Error display and user feedback systems
+## Implementation Patterns
 
-## Key Technical Decisions
-- TypeScript for type safety
-- React for UI with functional components
-- Clean Architecture for separation of concerns
-- Event-driven design for game mechanics
-- Comprehensive error handling
-- Tailwind CSS for styling
-- ShadcnUI for component base
+### Time Management
+- Track hours and days
+- Handle day transitions
+- Update state atomically
+- Trigger time-based events
 
-## Design Patterns
-- Observer Pattern: For event handling
-- Command Pattern: For activity execution
-- Strategy Pattern: For game mechanics
-- Repository Pattern: For data persistence
-- Factory Pattern: For entity creation
+### Resource Management
+- Enforce resource constraints
+- Handle concurrent updates
+- Validate all changes
+- Track historical changes
+
+### Error Handling
+- Add proper boundaries
+- Log all errors
+- Provide fallbacks
+- Clean up on errors
+
+## Organization
+
+### Test Structure
+```
+src/
+└── tests/
+    ├── components/      # Component tests
+    ├── integration/     # Integration tests
+    ├── performance/     # Performance tests
+    └── utils/          # Test utilities
+```
+
+### Implementation Structure
+```
+src/
+├── domain/
+│   ├── services/
+│   └── integration/
+├── application/
+│   └── game/
+└── presentation/
+    └── components/
+```

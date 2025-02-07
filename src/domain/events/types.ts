@@ -1,28 +1,23 @@
-export interface EventTrigger {
-  type: string;
-  target: string;
-  operator: 'equals' | 'greater' | 'less';
-  value: number;
-}
-
-export interface EventEffect {
-  type: string;
-  target: string;
-  operator: 'add' | 'subtract' | 'multiply' | 'set';
-  value: number;
-}
-
-export interface EventChoice {
-  id: string;
-  text: string;
-  requirements?: EventTrigger[];
-  effects: EventEffect[];
-}
+// src/domain/events/types.ts
 
 export interface GameEvent {
-  id: string;
-  title: string;
-  description: string;
-  trigger: EventTrigger;
-  choices: EventChoice[];
+  type: string;
+  payload?: unknown;
+  timestamp: number;
+  source?: string;
+}
+
+export type EventCallback = (event: GameEvent) => void;
+
+export type EventUnsubscribe = () => void;
+
+export interface EventSubscription {
+  callback: EventCallback;
+  createdAt: number;
+}
+
+export interface IEventBus {
+  dispatch(event: GameEvent): void;
+  subscribe(eventType: string, callback: EventCallback): EventUnsubscribe;
+  clear(): void;
 }

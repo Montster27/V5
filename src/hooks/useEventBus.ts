@@ -1,24 +1,50 @@
-import { useEffect } from 'react';
-import { eventBus, TimeEvent, ResourceEvent, StateEvent } from '../infrastructure/events/EventBus';
+// src/hooks/useEventBus.ts
 
-type EventMap = {
-  'DAY_PASSED': TimeEvent;
-  'WEEK_PASSED': TimeEvent;
-  'MONTH_PASSED': TimeEvent;
-  'RESOURCE_CHANGED': ResourceEvent;
-  'STATE_CHANGED': StateEvent;
-};
+import { useEffect, useCallback, useRef } from 'react';
+import { EventBus } from '@/infrastructure/events/EventBus';
+import type { GameEvent, EventCallback } from '@/domain/events/types';
 
-export function useEventBus<K extends keyof EventMap>(
-  eventType: K,
-  handler: (event: EventMap[K]) => void
-) {
-  useEffect(() => {
-    const unsubscribe = eventBus.subscribe(eventType, handler);
-    return () => unsubscribe();
-  }, [eventType, handler]);
+export function useEventBus() {
+  const eventBus = useRef(EventBus.getInstance());
+  
+  // Memoized dispatch function
+  const dispatch = useCallback((event: Omit<GameEvent, 'timestamp'>) => {
+    eventBus.current.dispatch({
+      ...event,
+      timestamp: Date.now()
+    });
+  }, []);
+
+  // Hook for subscribing to events
+  const useEventSubscription = (
+    eventType: string,
+    callback: EventCallback,
+    deps: any[] = []
+  ) => {
+    useEffect(() => {
+      const unsubscribe = eventBus.current.subscribe(eventType, callback);
+      return () => {
+        unsubscribe();
+      };
+    }, [eventType, ...deps]);
+  };
 
   return {
-    publish: (event: EventMap[K]) => eventBus.publish(eventType, event)
+    dispatch,
+    useEventSubscription,
+    // Expose raw subscribe for advanced use cases
+    subscribe: useCallback((eventType: string, callback: EventCallback) => 
+      eventBus.current.subscribe(eventType, callback),
+    [])
   };
+}
+
+// Helper hook for simple event subscriptions
+export function useGameEvent(
+  eventType: string,
+  callback: EventCallback,
+  deps: any[] = []
+) {
+  const { useEventSubscription } = useEventBus();
+  useEventSubscription(eventType, callback, deps);
 }

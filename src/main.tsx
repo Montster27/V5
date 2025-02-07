@@ -2,7 +2,7 @@
 
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { GameRoot } from './presentation/GameRoot';
+import GameRoot from './presentation/GameRoot';
 import './index.css';
 
 const rootElement = document.getElementById('root');
