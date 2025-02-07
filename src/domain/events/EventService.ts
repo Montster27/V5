@@ -7,11 +7,39 @@ import { EventGenerator } from './EventGenerator';
 export class EventService {
   private eventGenerator: EventGenerator;
 
-  constructor(events: GameEvent[]) {
-    this.eventGenerator = new EventGenerator(events);
+  constructor() {
+    // Initialize with empty event pool for now
+    this.eventGenerator = new EventGenerator([]);
   }
 
-  applyEffects(
+  checkForEvents(
+    resources: ResourceState,
+    skills: SkillState,
+    gameState: GameState
+  ): GameEvent[] {
+    return this.eventGenerator.generateEvents(resources, skills, gameState);
+  }
+
+  processEventChoice(
+    event: GameEvent,
+    choice: EventChoice,
+    resources: ResourceState,
+    skills: SkillState,
+    gameState: GameState
+  ): void {
+    if (choice.requirements && !this.eventGenerator.checkTriggerConditions(
+      choice.requirements[0],
+      resources,
+      skills,
+      gameState
+    )) {
+      throw new Error('Choice requirements not met');
+    }
+
+    this.applyEffects(choice.effects, resources, skills, gameState);
+  }
+
+  private applyEffects(
     effects: EventEffect[],
     resources: ResourceState,
     skills: SkillState,
@@ -50,32 +78,5 @@ export class EventService {
       case 'state': return gameState;
       default: return null;
     }
-  }
-
-  processEventChoice(
-    event: GameEvent,
-    choice: EventChoice,
-    resources: ResourceState,
-    skills: SkillState,
-    gameState: GameState
-  ): void {
-    if (choice.requirements && !this.eventGenerator.checkTriggerConditions(
-      choice.requirements,
-      resources,
-      skills,
-      gameState
-    )) {
-      throw new Error('Choice requirements not met');
-    }
-
-    this.applyEffects(choice.effects, resources, skills, gameState);
-  }
-
-  checkForEvents(
-    resources: ResourceState,
-    skills: SkillState,
-    gameState: GameState
-  ): GameEvent[] {
-    return this.eventGenerator.generateEvents(resources, skills, gameState);
   }
 }

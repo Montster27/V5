@@ -20,6 +20,10 @@ export class EventBus {
     };
   }
 
+  emit<T>(eventType: string, event: T): void {
+    this.publish(eventType, event);
+  }
+
   publish<T>(eventType: string, event: T): void {
     const handlers = this.handlers.get(eventType);
     if (handlers) {

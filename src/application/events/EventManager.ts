@@ -3,7 +3,7 @@ import { GameEvent, EventChoice } from '../../domain/events/types';
 import { ResourceManager } from '../resources/ResourceManager';
 import { SkillManager } from '../skills/SkillManager';
 import { GameStateManager } from '../game/GameStateManager';
-import { EventBus } from '../EventBus';
+import { EventBus } from '../../domain/shared/events';
 
 export class EventManager {
   constructor(
@@ -28,6 +28,7 @@ export class EventManager {
 
   handleEventChoice(event: GameEvent, choice: EventChoice): void {
     try {
+      const state = this.gameStateManager.getState();
       this.eventService.processEventChoice(
         event,
         choice,
@@ -40,12 +41,20 @@ export class EventManager {
         eventId: event.id,
         choiceId: choice.id
       });
-    } catch (error) {
-      this.eventBus.emit('events:choice:failed', {
-        eventId: event.id,
-        choiceId: choice.id,
-        error: error.message
-      });
+    } catch (err) {
+      if (err instanceof Error) {
+        this.eventBus.emit('events:choice:failed', {
+          eventId: event.id,
+          choiceId: choice.id,
+          error: err.message
+        });
+      } else {
+        this.eventBus.emit('events:choice:failed', {
+          eventId: event.id,
+          choiceId: choice.id,
+          error: 'Unknown error occurred'
+        });
+      }
     }
   }
 }

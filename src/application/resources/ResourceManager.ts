@@ -1,61 +1,61 @@
-import { Resources, ResourceService, ResourceModifiers } from '../../domain/resources/types';
-import { EventBus } from '../../domain/shared/events';
+import { EventBus } from "../../domain/shared/events";
+import { Resource, ResourceType } from "../../domain/resources/types";
+import { GameTime } from "../../domain/time/types";
 
-export class ResourceManager implements ResourceService {
-  private resources: Resources;
-  private modifiers: ResourceModifiers;
-  private eventBus: EventBus;
+export class ResourceManager {
+  private resources: Map<ResourceType, Resource> = new Map();
 
-  constructor(eventBus: EventBus) {
-    this.eventBus = eventBus;
-    this.resources = {
-      energy: 100,
-      stress: 0,
-      money: 1000,
-      knowledge: 0,
-      social: 50
-    };
-    this.modifiers = {
-      energyDrain: 1,
-      stressIncrease: 1,
-      moneyMultiplier: 1,
-      knowledgeMultiplier: 1,
-      socialMultiplier: 1
-    };
+  constructor(private eventBus: EventBus) {
+    this.initializeResources();
+    this.setupEventListeners();
   }
 
-  getResources(): Resources {
-    return { ...this.resources };
+  private setupEventListeners(): void {
+    this.eventBus.subscribe('HOURLY_UPDATE', () => this.processHourlyUpdate());
+    this.eventBus.subscribe('DAILY_UPDATE', () => this.processDailyUpdate());
   }
 
-  modifyResource(resource: keyof Resources, amount: number): void {
-    let newValue = this.resources[resource];
+  private initializeResources(): void {
+    this.resources.set("KNOWLEDGE", { type: "KNOWLEDGE", value: 0, maxValue: 100000 });
+    this.resources.set("MONEY", { type: "MONEY", value: 100, maxValue: 100000 });
+    this.resources.set("SOCIAL", { type: "SOCIAL", value: 0, maxValue: 100000 });
+    this.resources.set("ENERGY", { type: "ENERGY", value: 100, maxValue: 100 });
+    this.resources.set("STRESS", { type: "STRESS", value: 0, maxValue: 100 });
+  }
+
+  private processHourlyUpdate(): void {
+    // Base hourly changes
+    this.updateResource("ENERGY", this.getResource("ENERGY")!.value - 2);
+    this.updateResource("KNOWLEDGE", this.getResource("KNOWLEDGE")!.value + 5);
+    this.updateResource("MONEY", this.getResource("MONEY")!.value + 1);
     
-    if (resource === 'energy' || resource === 'stress' || resource === 'social') {
-      newValue = Math.max(0, Math.min(100, this.resources[resource] + amount));
-    } else {
-      newValue = Math.max(0, this.resources[resource] + amount);
-    }
-
-    if (newValue !== this.resources[resource]) {
-      this.resources[resource] = newValue;
-      this.eventBus.emit('RESOURCE_CHANGED', { resource, value: newValue });
+    // Stress affects all gains
+    const stress = this.getResource("STRESS")!.value;
+    if (stress > 50) {
+      this.updateResource("ENERGY", this.getResource("ENERGY")!.value - 1);
     }
   }
 
-  applyModifiers(modifiers: Partial<ResourceModifiers>): void {
-    Object.assign(this.modifiers, modifiers);
-    this.eventBus.emit('MODIFIERS_CHANGED', this.modifiers);
+  private processDailyUpdate(): void {
+    // Daily recovery and expenses
+    this.updateResource("ENERGY", 100); // Full energy at start of day
+    this.updateResource("MONEY", this.getResource("MONEY")!.value - 10); // Daily expenses
+    this.updateResource("STRESS", Math.max(0, this.getResource("STRESS")!.value - 10)); // Stress recovery
   }
 
-  resetModifiers(): void {
-    this.modifiers = {
-      energyDrain: 1,
-      stressIncrease: 1,
-      moneyMultiplier: 1,
-      knowledgeMultiplier: 1,
-      socialMultiplier: 1
-    };
-    this.eventBus.emit('MODIFIERS_RESET', null);
+  getState() {
+    return Array.from(this.resources.values());
+  }
+
+  getResource(type: ResourceType): Resource | undefined {
+    return this.resources.get(type);
+  }
+
+  updateResource(type: ResourceType, value: number): void {
+    const resource = this.resources.get(type);
+    if (resource) {
+      resource.value = Math.max(0, Math.min(value, resource.maxValue));
+      this.eventBus.emit('RESOURCE_UPDATED', { type, value: resource.value });
+    }
   }
 }
